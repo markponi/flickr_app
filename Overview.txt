@@ -1,0 +1,19 @@
+1. MainActivity OnResume creates GetFlickrJsonData object with the url, language, true, and OnDataAvailable interface object. It uses itself as the
+OnDataAvailable interface object because it implements the onDataAvailable method. - OK
+
+2. After creating the GetFlickrJsonData object, it calls the GetFlickrJsonObject executeOnSameThread method. - OK
+
+3. The GetFlickrJsonData.executeOnSameThread() calls it's createUri method which builds the url we need to use. - OK
+
+4. The GetFlickrJsonData.executeOnSameThread() then creates a new GetRawData object with itself (this) as the callback parameter that
+implements the interface OnDownloadComplete (the GetRawData object will call this when it's downloaded the data to parse the json).
+GetFlickrJsonData calls GetRawData's execute() method which kicks off doInBackground on a background thread - OK
+
+5. The GetRawData object, which implements AsyncTask, calls doInBackground() which returns a string of json data - OK
+
+6. I've logged the string that is passed to onPostExecute from doInBackground. The urls appear to be escaped which might be a problem. onPostExecute
+calls the calls(GetFlickJsonData) object to call OnDownloadComplete() which parses the JSON and creates Photo objects and stores them in mPhotoList,
+which is an ArrayList<Photo>.
+
+7. Then OnDownLoadComplete() calls it's callBack object back that implements OnDataAvailable interface and the onDataAvailable(PhotoList, DownloadStatus) method.
+
