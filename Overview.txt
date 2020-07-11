@@ -1,19 +1,65 @@
-1. MainActivity OnResume creates GetFlickrJsonData object with the url, language, true, and OnDataAvailable interface object. It uses itself as the
-OnDataAvailable interface object because it implements the onDataAvailable method. - OK
+1. MainActivity runs the onResume method. MainActivity. onResume() creates GetFlickrJsonData getFlickrJsonData object, passing itself (MainActivity) as the object used
+to implement the OnDataAvailable interface (which creates the onDataAvailable method). MainActivity calls getFlickrJsonData.execute, which kicks off doInBackground on the
+getFlickrJsonData object.
 
-2. After creating the GetFlickrJsonData object, it calls the GetFlickrJsonObject executeOnSameThread method. - OK
+2. The getFlickrJsonData is initialized and the constructor includes the string information necessary to build the Uri get method for the flickr service. The constructor also takes
+an OnDataAvailable objects (implements OnDataAvailable), which in this case is MainActivity.
 
-3. The GetFlickrJsonData.executeOnSameThread() calls it's createUri method which builds the url we need to use. - OK
+3. The getFlickrJsonData.execute() call, calls the doInBackground() method because getFlickrJsonData extends AsyncTask<String, Void, List<Photo>>. The generics here are String (passes
+in a String as the URL, Void (we aren't showing a progress bar) and List<Photo> for this object.
 
-4. The GetFlickrJsonData.executeOnSameThread() then creates a new GetRawData object with itself (this) as the callback parameter that
-implements the interface OnDownloadComplete (the GetRawData object will call this when it's downloaded the data to parse the json).
-GetFlickrJsonData calls GetRawData's execute() method which kicks off doInBackground on a background thread - OK
+4. The getFlickrJsonData.execute() calls doInBackground(). doInBackground creates a GetRawData getRawData object, pass itself(getFlickrJsonData) in the constructor as GetRawData needs an
+OnDownloadComplete object (implements the OnDownloadComplete interface). getFlickrJsonData implements the OnDownloadComplete interface (implements the onDownloadComplete method). Now getRawData
+has access "back" to getFlickrJsonData.
 
-5. The GetRawData object, which implements AsyncTask, calls doInBackground() which returns a string of json data - OK
+5. getFlickrJsonData.doInBackground(String...strings) which calls createUri(). String...strings is an array of strings. When MainActivity onResume() creates getFlickrJsonData and
+ then calls getFlickrJsonData.execute(), it passes the search terms into the execute parameter like so: getFlickrJsonData.execute("android, nougat"); This is why getFlickrJsonData
+ extends AsyncTask<String... . the "android, nougat" is the input value into the AsyncTask (here List<Photo>) is the return value. Again, Void is status bar stuff.
 
-6. I've logged the string that is passed to onPostExecute from doInBackground. The urls appear to be escaped which might be a problem. onPostExecute
-calls the calls(GetFlickJsonData) object to call OnDownloadComplete() which parses the JSON and creates Photo objects and stores them in mPhotoList,
-which is an ArrayList<Photo>.
+6. After MainActivity calls getFlickrJsonData.execute() it kicks off doInBackground. That first creates the URI with the base URL. The base URL is passed to the GetFlickrJsonData
+ constructor in MainActivity.
 
-7. Then OnDownLoadComplete() calls it's callBack object back that implements OnDataAvailable interface and the onDataAvailable(PhotoList, DownloadStatus) method.
+7. Now that  getFlickrJsonData has created the URI, it has to pass it off the object that will get the json string. The object that does this work is the GetRawData object. The GetRawData
+ object is initiated with a callback object that must implement the interface OnDownloadComplete (method is onDownloadComplete). GetFlickrJsonData implements OnDownloadComplete so it will
+ pass itself (this) in the GetRawData getRawData constructor.
+
+8. getFlickrJsonData then calls getRawData.runInSameThread(destinationUri). getRawData.runInSameThread(). That function wraps mCallback.onDownloadComplete(doInBackground(s), mDownloadStatus);
+ As you can see, runInSameThread() first references the callback[getFlickrJsonData] so that it can call onDownloadComplete. As a reminder, onDownloadComplete(String data, DownloadStatus status)
+ takes a String data and the download status. doInBackground(s) [s is the DestinationUri] is then run as the first parameter of onDownloadComplete because it returns the String of json
+ data. the getRawData doInBackground is an interesting function to show how easy it is to parse json data.
+
+9. Once doInBackground(s) is done, mCallback.onDownloadComplete(doInBackground(s), mDownloadStatus) runs. onDownloadComplete() implements the GetRawData.OnDownloadComplete interface.
+ onDownloadComplete parses the json and it populates(adds to) a List<Photo> object. At the end of onDownloadComplete, the function calls the mCallBack.onDataAvailable(mPhotoList, status)
+ function. Remember in this case, mCallBack refers to [MainActivity extends AppCompatActivity implements GetFlickrJsonData.OnDataAvailable].
+
+10. At this point, we are back at MainActivity and now have a function wants to process the data. We'll pick it up from here!
+
+11. Let's talk about the RecyclerViewAdapter. A RecyclerView (in our case, content_main.xml includes a RecyclerView named recycler_view, included in the activity_main.xml layout) shows a list
+of views (in our case, a List of Photo objects) by using an adapter. The adapter links the data List of Photos with the Recycler view.
+
+12. We create an object called FlickrRecyclerViewAdapter which must extend the RecyclerView.Adapter class like this: extends RecyclerView.Adapter<FlickrRecyclerViewAdapter.FlickrImageViewHolder>.
+ The generic parameter it accepts is the recycler view's Viewholder. The Viewholder represents each object that shows up in the list. FlickrImageViewHolder is our ViewHolder object that extends
+ RecyclerView.ViewHolder.
+
+13. Inside of FlickrRecyclerViewAdapter we've created a ViewHolder class called FlickrImageViewHolder extends RecyclerView.ViewHolder. It is tied to the FlickrRecyclerViewAdapter via the generic
+defined in the FlickrRecyclerViewAdapter. Besides the logging tag, FlickrImageViewHolder has two variables, an ImageView, and a TextView. The constructor takes a View (browse.xml) that is
+created and then finds the title and thumbnail in defined in the newly created view, and then adds it to the ViewHolder instance.
+
+14. FlickrRecyclerViewAdapter is constructed with a list of Photos (private List<Photo> mPhotoList) and a Context.
+
+15. There are a number of methods that must be overridden. The first being: onCreateViewHolder. In our case, onCreateViewHolder(ViewGroup parent, int viewType) is overridden and must construct
+a ViewHolder object and set the View used to display its contents. First we create the browse.xml view via layout inflator. Then, after creating the view, you create the ViewHolder object via
+return new FlickrImageViewHolder(view).
+
+16. Next we override onBindViewHolder(FlickrImageViewHolder holder, int position) method. This is used by the LayoutManager to bind data to the view (onCreateViewHolder just creates the view).
+The position argument passes the position of the ViewHolder so that can be used to pull the data from our ArrayList of Photos. We first call Photo photoItem = mPhotoList.get(position); to create
+a new Photo object. Then we use Picasso (used for photo cacheing and storing) to assign the Photo object image to the ViewHolder's image url. We then add the title to the view holder title.
+
+17. We override getItemCount().
+
+18. We have a getPhoto(int position) which returns the photo object. This is not used yet.
+
+19. We also have loadNewData(List<Photo> newPhotos) which loads the FlickrRecyclerViewAdapters photo list with new photos. This is called in the onDataAvailable method in MainActivity.
+
+
 
