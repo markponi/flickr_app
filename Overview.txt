@@ -61,5 +61,20 @@ a new Photo object. Then we use Picasso (used for photo cacheing and storing) to
 
 19. We also have loadNewData(List<Photo> newPhotos) which loads the FlickrRecyclerViewAdapters photo list with new photos. This is called in the onDataAvailable method in MainActivity.
 
+20. Now, let's talk about the mechanism for listening to touch events on a recyclerview view. In MainActivity, after instantiating the recyclerView, we add an item touch listener via the
+following: addOnItemTouchListener(@NonNull OnItemTouchListener listener); In our code, it is: recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
+RecyclerItemClickListener will implement or extend the OnItemTouchListener referenced above. Our class RecyclerItemClickListener extends RecyclerView.SimpleOnItemTouchListener.
+SimpleOnItemTouchListener implements OnItemTouchListener which is why we can pass it to addOnItemTouchListener.
 
+21. The constructor for the RecyclerItemClickListener takes a Context, a RecyclerView, and an object that implements OnRecyclerClickListener (MainActivity implements this) so that we can reference
+the implementing object (again, MainActivity) when we have to. The interface we defined, OnRecyclerClickListener, implements two "actions." One is for clicks, the other is for long clicks. The
+methods are: void onItemClick(View view, int position); and void onItemLongClick(View view, int position);.
+
+22. Now, as mentioned before, the RecycleItemClickListener extends SimpleOnItemTouchListener. The mechanism for responding to touch events anywhere in the recyclerView requires us to override
+public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e). It gets a little confusing here but basically, it calls the appropriate overridden function we defined
+in the constructor of the class RecycleItemClickListener. In the constructor we create a GestureDetectorCompat named mGestureDetector, which is referenced in onInterceptTouchEvent. onInterceptTouchEvent
+passes the MotionEvent e for us.
+
+23. Inside our GestureDetectorCompat we identify the view in the recycler view via View childView = recyclerView.findChildViewUnder(e.getX(), e.getY()); Then we use our callback (MainActivity, which
+implemented our RecyclerItemClickListener.OnRecyclerClickListener) reference to implement the methods. We pass the View and the position of the view.
 

@@ -52,10 +52,10 @@ class RecyclerItemClickListener extends RecyclerView.SimpleOnItemTouchListener {
         Log.d(TAG, "onInterceptTouchEvent: starts");
         if(mGestureDetector != null){
             boolean result = mGestureDetector.onTouchEvent(e);
-            Log.d(TAG, "onInterceptTouchEvent(): returned " + result);
+            Log.d(TAG, "onInterceptTouchEvent(): returned " + result + " " + e.toString());
             return result;
         } else {
-            Log.d(TAG, "onInterceptTouchEvent(): returned: false ");
+            Log.d(TAG, "onInterceptTouchEvent(): returned: false " + e.toString());
             return false;
         }
     }
